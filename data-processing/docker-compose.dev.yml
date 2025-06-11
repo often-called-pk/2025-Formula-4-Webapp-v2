@@ -1,0 +1,106 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:15
+    container_name: formula4_postgres
+    environment:
+      POSTGRES_DB: formula4_telemetry
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: password
+      POSTGRES_HOST_AUTH_METHOD: trust
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./init-db.sql:/docker-entrypoint-initdb.d/init-db.sql
+    networks:
+      - formula4_network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d formula4_telemetry"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  redis:
+    image: redis:7-alpine
+    container_name: formula4_redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - formula4_network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    command: redis-server --appendonly yes --maxmemory 512mb --maxmemory-policy allkeys-lru
+
+  data_processor:
+    build: 
+      context: .
+      dockerfile: Dockerfile
+    container_name: formula4_data_processor
+    ports:
+      - "8000:8000"
+    environment:
+      DATABASE_URL: postgresql://postgres:password@postgres:5432/formula4_telemetry
+      REDIS_URL: redis://redis:6379/0
+      CACHE_TTL: 3600
+      DB_POOL_SIZE: 10
+      DB_MAX_OVERFLOW: 20
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - formula4_network
+    volumes:
+      - ./uploads:/app/uploads
+      - ./logs:/app/logs
+    restart: unless-stopped
+
+  # Optional: Database administration tool
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    container_name: formula4_pgadmin
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@formula4.com
+      PGADMIN_DEFAULT_PASSWORD: admin
+      PGADMIN_CONFIG_SERVER_MODE: 'False'
+    ports:
+      - "5050:80"
+    networks:
+      - formula4_network
+    profiles:
+      - admin
+    depends_on:
+      - postgres
+
+  # Optional: Redis administration tool
+  redis_commander:
+    image: rediscommander/redis-commander:latest
+    container_name: formula4_redis_commander
+    environment:
+      REDIS_HOSTS: local:redis:6379
+    ports:
+      - "8081:8081"
+    networks:
+      - formula4_network
+    profiles:
+      - admin
+    depends_on:
+      - redis
+
+volumes:
+  postgres_data:
+    driver: local
+  redis_data:
+    driver: local
+
+networks:
+  formula4_network:
+    driver: bridge 

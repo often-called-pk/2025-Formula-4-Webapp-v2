@@ -1,0 +1,298 @@
+# Product Requirements Document (PRD)
+## Formula 4 Race Analytics Webapp
+
+### 1. Executive Summary
+
+**Product Name:** Formula 4 Race Analytics Webapp  
+**Version:** 1.0  
+**Document Date:** June 2025  
+**Author:** Product Analysis Team  
+
+The Formula 4 Race Analytics Webapp is a specialized telemetry analysis platform designed for Formula 4 racing teams, drivers, and engineers. It provides comparative analysis of race data between two drivers, focusing on optimizing fastest lap performance through an intuitive web-based interface that transforms raw racing data into actionable insights.
+
+### 2. Product Overview
+
+#### 2.1 Product Vision
+To democratize advanced telemetry analysis for Formula 4 racing by providing an intuitive, web-based platform that transforms raw racing data into actionable insights for performance improvement.
+
+#### 2.2 Product Mission
+Enable racing teams and drivers to make data-driven decisions by providing comprehensive telemetry comparison tools that highlight performance differences and optimization opportunities.
+
+### 3. Target Users
+
+#### 3.1 Primary Users
+- **Racing Engineers**: Analyze driver performance and vehicle setup optimization
+- **Racing Drivers**: Understand performance gaps and improvement areas
+- **Team Managers**: Make strategic decisions based on performance data
+- **Racing Coaches**: Provide data-driven feedback to drivers
+
+#### 3.2 Secondary Users
+- **Racing Enthusiasts**: Analyze publicly available telemetry data
+- **Students/Researchers**: Study racing dynamics and performance optimization
+
+### 4. User Stories & Requirements
+
+#### 4.1 Core User Stories
+
+**As a Racing Engineer, I want to:**
+- Upload telemetry files for different drivers
+- Compare fastest lap performance between drivers
+- Visualize speed differences across track distance and time
+- Analyze lap time deltas to identify performance gaps
+- View driver actions (braking, throttling, turning) throughout the lap
+- Visualise the 3D track map using GPS co-ordinates and altitude in the telemetry file
+- Visualise gear, engine RPM, throttle position, brake pressure, clutch position, steering position, water temp, exhaust temp, oil temp, oil pressure, battery voltage as line plots
+- Visualise oversteer/understeer using GPS Lateral Acceleration, GPS Longitudinal Acceleration, GPS Gyro, Lateral Acceleration, Inline Acceleration, and Steering Postion.
+- Divide the track into sectors. Visualise track dominance when comparing multiple drivers using speed and time taken to move across each sector of the track.
+- Export analysis results for team meetings
+
+**As a Driver, I want to:**
+- Compare my performance against teammates or competitors
+- Identify specific track sections where I'm losing time
+- Understand my driving patterns vs. optimal performance
+- See visual representations of my telemetry data
+
+#### 4.2 Functional Requirements
+
+##### 4.2.1 User Authentication: 
+- **REQ-001**: Secure sign-up and login for racing teams and individuals using Supabase.
+
+##### 4.2.2 Data Input & Processing
+- **REQ-002**: Support CSV telemetry file uploads from multiple data sources
+  - AiM Sports - RaceStudio3 CSV format
+  - Marelli - WinTAX4 format
+- **REQ-003**: Process metadata and telemetry data separately and store it in the common database
+- **REQ-004**: Extract fastest lap data automatically from session data
+- **REQ-005**: Handle data validation and error checking
+- **REQ-006**: Support concurrent file processing for two drivers
+
+##### 4.2.3 Data Analysis
+- **REQ-007**: Calculate fastest lap times with configurable acceptable ranges (95-120 seconds)
+- **REQ-008**: Normalize telemetry data for accurate comparison
+- **REQ-009**: Compute lap delta (time differences) between drivers
+- **REQ-010**: Classify driver actions (Full Throttle, Brake, Turning) based on telemetry thresholds
+- **REQ-011**: Classify oversteer/understeer on a turn by turn basis
+- **REQ-012**: Classify track dominance on a sector by sector basis
+- **REQ-013**: Interpolate data over distance for precise alignment
+- **REQ-014**: Interpolate data over time for precise alignment
+
+##### 4.2.4 Visualization
+- **REQ-012**: Generate multi-subplot comparative visualizations
+- **REQ-013**: Add check boxes for different plots to be shown
+- **REQ-014**: Visualise all plots with a common y-axis, drop down for switching y-axis between distance and time
+- **REQ-015**: Visualise speed, gear, engine RPM, throttle position, brake pressure, clutch position, steering position, water temp, exhaust temp, oil temp, oil pressure, battery voltage as line plots
+- **REQ-016**: Show lap delta visualization with zero reference line
+- **REQ-017**: Generate 3D track map by plotting GPS longitude, GPS latitude, and GPS Altitude
+- **REQ-018**: Different colored lines for multiple drivers, overlaid on top of each other for easy comparison
+- **REQ-019**: Calculate and plot oversteer/understeer using GPS Lateral Acceleration, GPS Longitudinal Acceleration, GPS Gyro, Lateral Acceleration, Inline Acceleration, and Steering Postion.
+- **REQ-020**: Cursor that will move across all the plots in sync to show corresponding position on track map and the other plots
+- **REQ-021**: Render driver action timelines with color coding:
+  - Red: Braking
+  - Green: Full Throttle
+  - Yellow: Turning
+- **REQ-022**: Support dark theme visualization optimized for racing environment
+- **REQ-023**: Interactive plots with zoom and pan capabilities
+
+##### 4.2.5 User Interface
+- **REQ-024**: Responsive web interface supporting desktop and tablet
+- **REQ-025**: Intuitive file upload interface with drag-and-drop support
+- **REQ-026**: Form validation for required fields
+- **REQ-027**: Real-time progress indicators during analysis
+- **REQ-028**: Professional racing-themed design aesthetic
+
+### 5. Technical Requirements
+
+#### 5.1 Architecture
+- **Backend**: Supabase (Auth + PostgreSQL), Cloudflare R2 (Storage), Node.js with Express for server-side processing and PostgreSQL for database storage.
+- **Frontend**: 	React, Tailwind CSS, shadcn/ui, Lucide React, Custom Charts for dynamic user interfaces
+- **Visualization**: D3.js for data visualization.
+- **Data Processing**: Python, Use a library like FastAPI for handling file uploads and processing.
+- **Data Analysis**: Pandas, NumPy for telemetry analysis
+
+#### 5.2 Performance Requirements
+- **PERF-001**: Process telemetry files up to 15MB within 30 seconds
+- **PERF-002**: Support concurrent analysis of multiple drivers
+- **PERF-003**: Generate visualizations within 15 seconds of data processing
+- **PERF-004**: Handle up to 50 concurrent users
+
+#### 5.3 Security Requirements
+- **SEC-001**: HTTPS encryption for all data transmission
+- **SEC-002**: File upload validation and sanitization
+- **SEC-003**: Temporary file cleanup after processing
+- **SEC-004**: No persistent storage of uploaded telemetry data
+
+#### 5.4 Deployment Requirements
+- **DEPLOY-001**: Docker containerization support
+- **DEPLOY-002**: Nginx reverse proxy configuration
+- **DEPLOY-003**: SSL certificate management
+- **DEPLOY-004**: Cloud deployment compatibility for AWS
+
+### 6. Data Requirements
+
+#### 6.1 Input Data Format
+- **CSV files** with metadata header (first 14 rows)
+- **Telemetry data** with columns:
+  - Time (timestamp)
+  - GPS Speed (km/h)
+  - GPS LatAcc (g)
+  - GPS LonAcc (g)
+  - GPS Slope (deg)
+  - GPS Heading (deg)
+  - GPS Gyro (deg/s)
+  - GPS Altitude (m)
+  - GPS PosAccuracy (mm)
+  - GPS SpdAccuracy (km/h)
+  - GPS Radius (m)
+  - GPS Latitude (deg)
+  - GPS Longitude (deg)
+  - LoggerTemp (°C)
+  - Battery (V)
+  - Predictive Time
+  - Engine RPM (rpm)
+  - Speed (km/h)
+  - Gear
+  - Water Temp (°C)
+  - Head Temp (°C)
+  - Exhaust Temp (°C)
+  - Oil Temp (°C)
+  - Oil Press (bar)
+  - Brake Press (bar)
+  - Throttle Pos (%)
+  - Brake Pos (%)
+  - Clutch Pos (%)
+  - Steering Pos (deg)
+  - Lambda (%)
+  - Lateral Acc (g)
+  - Inline Acc (g)
+  - Fuel Level (%)
+  - Battery Voltage (V)
+  - Vertical Acc (g)
+  - Distance on GPS Speed (m)
+  - Distance on Vehicle Speed (m)
+
+
+#### 6.2 Data Processing
+- **Metadata extraction**: Driver name, session info, lap times
+- **Data normalization**: Time and distance alignment
+- **Outlier filtering**: Lap times outside acceptable range
+- **Data interpolation**: Interpolate data over distance for precise alignment
+- **Data alignment**: Align data over time for precise alignment
+- **Data filtering**: Filter out data outside acceptable range
+- **Lap classification**: Classify lap type (Qualifying, Race, Warmup, etc.) and lap number
+- **Action classification**: Based on throttle and brake thresholds
+- **Oversteer/understeer classification**: Based on GPS Lateral Acceleration, GPS Longitudinal Acceleration, GPS Gyro, Lateral Acceleration, Inline Acceleration, and Steering Postion.
+- **Track dominance classification**: Based on speed and time taken to move across each sector of the track.
+
+### 7. User Experience Requirements
+
+#### 7.1 Usability
+- **UX-001**: Complete analysis workflow within 5 clicks
+- **UX-002**: Clear error messages for invalid files or data
+- **UX-003**: Progress indicators for long-running operations
+- **UX-004**: Intuitive navigation and form flow
+
+#### 7.2 Accessibility
+- **ACC-001**: WCAG 2.1 AA compliance
+- **ACC-002**: Keyboard navigation support
+- **ACC-003**: Screen reader compatibility
+- **ACC-004**: High contrast mode support
+
+### 8. Integration Requirements
+
+#### 8.1 Data Source Integration
+- **INT-001**: Support for AiM Sports RaceStudio3 export format
+- **INT-002**: Support for Marelli WinTAX4 export format
+- **INT-003**: Extensible architecture for additional data sources
+
+#### 8.2 Export Capabilities
+- **INT-004**: Export visualizations as PNG/PDF
+- **INT-005**: Export analysis data as CSV
+- **INT-006**: Share analysis results via URL
+
+### 9. Success Metrics
+
+#### 9.1 Usage Metrics
+- Monthly active users: 500+ within 6 months
+- Analysis sessions per user: 10+ per month
+- File upload success rate: 95%+
+
+#### 9.2 Performance Metrics
+- Average analysis completion time: <45 seconds
+- User satisfaction score: 4.5/5
+- System uptime: 99.5%
+
+#### 9.3 Business Metrics
+- Customer acquisition: 50+ racing teams
+- Feature adoption rate: 80% for core features
+- User retention rate: 70% after 3 months
+
+### 10. Future Enhancements (Roadmap)
+
+#### 10.1 Phase 2 Features
+- Multi-session comparison
+- Historical performance tracking
+- Team collaboration features
+- Mobile application
+
+#### 10.2 Phase 3 Features
+- Real-time telemetry streaming
+- AI-powered performance recommendations
+- Advanced statistical analysis
+- Integration with racing simulators
+
+### 11. Constraints & Assumptions
+
+#### 11.1 Technical Constraints
+- Browser compatibility: Chrome 90+, Firefox 85+, Safari 14+
+- File size limit: 50MB per upload
+- Processing time limit: 5 minutes per analysis
+
+#### 11.2 Business Constraints
+- Budget allocation for cloud infrastructure
+- Compliance with motorsport data regulations
+- Licensing agreements with telemetry system vendors
+
+#### 11.3 Assumptions
+- Users have basic understanding of racing telemetry
+- Stable internet connection for file uploads
+- Standard CSV format compliance from data sources
+
+### 12. Risk Assessment
+
+#### 12.1 Technical Risks
+- **High**: Data format variations between telemetry systems
+- **Medium**: Scalability challenges with large file processing
+- **Low**: Browser compatibility issues
+
+#### 12.2 Business Risks
+- **Medium**: Competition from established racing analysis tools
+- **Medium**: Adoption barriers in traditional racing teams
+- **Low**: Intellectual property concerns with telemetry data
+
+### 13. Acceptance Criteria
+
+#### 13.1 MVP Acceptance Criteria
+- ✅ Upload CSV telemetry files to the database successfully
+- ✅ Generate comparative speed vs. distance visualization
+- ✅ Generate engine vitals graph
+- ✅ Display lap delta analysis with reference line
+- ✅ Show driver action timeline with color coding
+- ✅ Generate 3D track map by plotting GPS co ordinates and altitude
+- ✅ Generate oversteer/understeer plot
+- ✅ Generate track dominance plot
+- ✅ Responsive design works on desktop and tablet
+- ✅ Processing completes within acceptable time limits
+
+#### 13.2 Quality Gates
+- All functional requirements tested and validated
+- Performance benchmarks met
+- Security assessment completed
+- User acceptance testing passed with 90% satisfaction
+
+---
+
+**Document Control:**
+- **Created**: 9 June 2025
+- **Last Updated**: 9 June 2025 
+- **Next Review**: [Pending]
+- **Approval**: [Pending]

@@ -1,0 +1,46 @@
+services:
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    ports:
+      - "5173:5173"
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+      - /app/dist
+    environment:
+      - CHOKIDAR_USEPOLLING=true
+    command: npm run dev -- --host
+    depends_on:
+      - api
+
+  api:
+    build:
+      context: ./api
+      dockerfile: Dockerfile
+    ports:
+      - "3001:3001"
+    volumes:
+      - ./api:/usr/src/app
+      - /usr/src/app/node_modules
+    environment:
+      - NODE_ENV=development
+      - PORT=3001
+    depends_on:
+      - data-processing
+
+  data-processing:
+    build:
+      context: ./data-processing
+      dockerfile: Dockerfile
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./data-processing:/code 
+    environment:
+      - PYTHONPATH=/code
+
+networks:
+  default:
+    name: formula4-network 

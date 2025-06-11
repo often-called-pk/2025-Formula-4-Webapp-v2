@@ -1,0 +1,103 @@
+# Product Requirements Document (PRD) - MVP
+## Formula 4 Race Analytics Webapp
+
+### 1. Executive Summary
+
+**Product Name:** Formula 4 Race Analytics Webapp (MVP)
+**Version:** 0.1.0
+**Document Date:** July 2024
+
+This document outlines the requirements for the Minimum Viable Product (MVP) of the Formula 4 Race Analytics Webapp. The MVP will focus on core telemetry upload, processing, and comparative visualization features to provide initial value to racing engineers and drivers.
+
+### 2. Product Overview
+
+#### 2.1 Product Vision
+To democratize advanced telemetry analysis for Formula 4 racing by providing an intuitive, web-based platform that transforms raw racing data into actionable insights for performance improvement.
+
+#### 2.2 Product Mission (MVP)
+Enable racing teams and drivers to make data-driven decisions by providing essential telemetry comparison tools that highlight performance differences between two drivers on their fastest laps.
+
+### 3. Target Users
+
+- **Primary**: Racing Engineers, Racing Drivers
+- **Secondary**: Team Managers, Racing Coaches
+
+### 4. MVP User Stories & Requirements
+
+#### 4.1 Core User Stories
+
+**As a Racing Engineer, I want to:**
+- Upload CSV telemetry files and add it to the database for different drivers.
+- Automatically compare their fastest lap performance.
+- Visualize speed differences and lap time deltas to identify where time is lost or gained.
+- See a 3D visualization of the racing line on the track.
+- Analyze plots for oversteer/understeer and track sector dominance.
+- View a timeline of driver actions (braking, throttling).
+
+**As a Driver, I want to:**
+- Compare my fastest lap against a teammate or competitor.
+- See exactly where on the track I am faster or slower.
+- Understand my driving inputs (steering, throttle, brake) relative to another driver.
+
+#### 4.2 Functional Requirements
+
+##### 4.2.1 User Authentication & Data Input
+- **REQ-MVP-001**: Secure user sign-up and login (Leveraging Supabase Auth).
+- **REQ-MVP-002**: Support upload of two CSV telemetry files (primarily AiM RaceStudio3 format).
+- **REQ-MVP-003**: Process and store relevant metadata and time-series data in a PostgreSQL database.
+- **REQ-MVP-004**: Automatically identify and extract data corresponding to the fastest lap for each driver.
+
+##### 4.2.2 Data Analysis & Comparison
+- **REQ-MVP-005**: Calculate the time difference (delta) between the two drivers continuously along the lap.
+- **REQ-MVP-006**: Classify driver actions (e.g., Full Throttle, Braking) based on telemetry data.
+- **REQ-MVP-007**: Analyze steering and vehicle dynamics to derive an oversteer/understeer metric.
+- **REQ-MVP-008**: Divide the track into sectors and determine which driver is dominant in each.
+
+##### 4.2.3 Visualization
+- **REQ-MVP-009**: Display multiple, synchronized plots (Speed vs. Distance, Engine Vitals, etc.).
+- **REQ-MVP-010**: Generate a comparative "Lap Delta" visualization showing time gained/lost.
+- **REQ-MVP-011**: Create a 3D track map by plotting GPS longitude, latitude, and altitude.
+- **REQ-MVP-012**: Render a color-coded timeline of driver actions.
+- **REQ-MVP-013**: Plot calculated oversteer/understeer and track dominance data.
+- **REQ-MVP-014**: Use a synchronized cursor that moves across all plots and the track map simultaneously.
+
+##### 4.2.4 User Interface
+- **REQ-MVP-015**: A clean, responsive web interface that works on desktop and tablet browsers.
+- **REQ-MVP-016**: A professional, racing-themed dark mode design.
+
+### 5. Technical Stack
+
+- **Backend**:
+    - **Platform**: Supabase (PostgreSQL, Auth, Storage)
+    - **API Server**: Node.js with Express.js
+    - **Data Processing Service**: Python with FastAPI
+- **Frontend**:
+    - **Framework**: React (Vite)
+    - **Styling**: Tailwind CSS
+    - **UI Components**: shadcn/ui
+    - **Data Visualization**: Plotly.js
+- **Data Analysis**: Pandas, NumPy
+
+### 6. Data Requirements
+
+- **Input Format**: CSV files with metadata in the header and columns as specified in the example PRD, including:
+    - Time, Speed, GPS Latitude, GPS Longitude, GPS Altitude, Engine RPM, Gear, Throttle Pos, Brake Press, Steering Pos, Lateral Acc, Inline Acc, etc.
+- **Data Processing**:
+    - Extract metadata and time-series data.
+    - Normalize and align data between the two files based on distance.
+    - Filter data to the fastest lap for each driver.
+
+### 7. MVP Acceptance Criteria
+
+- ✅ Users can successfully upload two CSV telemetry files.
+- ✅ The system processes the files and stores the data in the database.
+- ✅ A comparative Speed vs. Distance visualization is generated.
+- ✅ A graph showing essential engine vitals (e.g., RPM, Water Temp) is displayed.
+- ✅ The lap delta analysis is shown with a clear zero reference line.
+- ✅ A color-coded driver action timeline is rendered.
+- ✅ A 3D track map is generated from GPS coordinates.
+- ✅ Oversteer/understeer and track dominance plots are generated.
+- ✅ The responsive design is functional on both desktop and tablet screens.
+- ✅ All processing and rendering complete within acceptable performance limits (< 45 seconds).
+
+--- 

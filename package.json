@@ -1,0 +1,48 @@
+{
+  "name": "formula4-race-analytics",
+  "version": "1.0.0",
+  "description": "Formula 4 telemetry analysis platform with React frontend, Node.js backend, and Python data processing service",
+  "private": true,
+  "scripts": {
+    "dev": "concurrently \"npm run dev:frontend\" \"npm run dev:api\" \"npm run dev:data\"",
+    "dev:frontend": "cd frontend && npm run dev",
+    "dev:api": "cd api && npm run dev",
+    "dev:data": "cd data-processing && py -m uvicorn main:app --reload --host 0.0.0.0 --port 8000",
+    "build": "npm run build:frontend",
+    "build:frontend": "cd frontend && npm run build",
+    "install:all": "npm install && cd frontend && npm install && cd ../api && npm install",
+    "clean": "rm -rf node_modules frontend/node_modules api/node_modules frontend/dist",
+    "docker:up": "docker-compose up",
+    "docker:down": "docker-compose down",
+    "docker:build": "docker-compose build",
+    "test": "npm run test:frontend && npm run test:api",
+    "test:frontend": "cd frontend && npm run test",
+    "test:api": "cd api && npm test",
+    "lint": "npm run lint:frontend && npm run lint:api",
+    "lint:frontend": "cd frontend && npm run lint",
+    "lint:api": "cd api && npm run lint"
+  },
+  "devDependencies": {
+    "concurrently": "^7.6.0"
+  },
+  "workspaces": [
+    "frontend",
+    "api"
+  ],
+  "keywords": [
+    "formula4",
+    "telemetry",
+    "racing",
+    "analytics",
+    "react",
+    "nodejs",
+    "fastapi",
+    "python"
+  ],
+  "author": "",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": ""
+  }
+} 
