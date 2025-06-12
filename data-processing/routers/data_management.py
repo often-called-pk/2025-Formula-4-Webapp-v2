@@ -1,4 +1,4 @@
-from fastapi import APIRouter, HTTPException, Depends, Query, UploadFile, File, Form, BackgroundTasks
+from fastapi import APIRouter, HTTPException, Depends, Query, UploadFile, File, Form, BackgroundTasks, Request
 from typing import List, Optional, Dict, Any
 import pandas as pd
 import io
@@ -8,6 +8,7 @@ from services.database import get_database_manager, SessionRepository, CacheMana
 from services.data_processor import TelemetryProcessor
 from models.telemetry_models import SessionData, ProcessingResult, AnalysisResult
 from models.database_models import Session as DBSession, Driver, Track, ComparisonResult, ProcessingJob
+from middleware.auth import get_current_user, get_current_user_optional, basic_rate_limit, heavy_rate_limit, comparison_rate_limit
 
 router = APIRouter(prefix="/data", tags=["data-management"])
 
@@ -27,12 +28,15 @@ processor = TelemetryProcessor()
 @router.post("/upload-session")
 async def upload_and_store_session(
     background_tasks: BackgroundTasks,
+    request: Request,
     file: UploadFile = File(...),
     driver_name: Optional[str] = Form(None),
     session_name: Optional[str] = Form(None),
     track_name: Optional[str] = Form(None),
     session_repo: SessionRepository = Depends(get_session_repo),
-    cache_manager: CacheManager = Depends(get_cache_manager)
+    cache_manager: CacheManager = Depends(get_cache_manager),
+    current_user: Dict[str, Any] = Depends(get_current_user),
+    _: None = Depends(heavy_rate_limit)
 ):
     """
     Upload CSV telemetry file and store processed data in database
@@ -93,7 +97,8 @@ async def upload_and_store_session(
             "laps_detected": len(laps),
             "fastest_lap_time": fastest_lap.lap_time if fastest_lap else None,
             "total_duration": metadata.get('Duration'),
-            "file_size": len(content)
+            "file_size": len(content),
+            "uploaded_by": current_user.get("email", current_user.get("sub", "unknown"))
         }
         
     except Exception as e:
@@ -103,7 +108,9 @@ async def upload_and_store_session(
 async def get_sessions(
     driver_name: Optional[str] = Query(None, description="Filter by driver name"),
     limit: int = Query(20, ge=1, le=100, description="Number of sessions to return"),
-    session_repo: SessionRepository = Depends(get_session_repo)
+    session_repo: SessionRepository = Depends(get_session_repo),
+    current_user: Optional[Dict[str, Any]] = Depends(get_current_user_optional),
+    _: None = Depends(basic_rate_limit)
 ):
     """
     Get stored telemetry sessions with optional filtering
@@ -229,7 +236,9 @@ async def compare_stored_sessions(
     use_cache: bool = Form(True, description="Use cached results if available"),
     session_repo: SessionRepository = Depends(get_session_repo),
     cache_manager: CacheManager = Depends(get_cache_manager),
-    db_manager: DatabaseManager = Depends(get_db_manager)
+    db_manager: DatabaseManager = Depends(get_db_manager),
+    current_user: Dict[str, Any] = Depends(get_current_user),
+    _: None = Depends(comparison_rate_limit)
 ):
     """
     Compare two stored sessions with caching and database persistence

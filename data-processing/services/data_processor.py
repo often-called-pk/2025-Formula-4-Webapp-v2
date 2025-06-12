@@ -4,6 +4,7 @@ from typing import List, Dict, Any
 from models.telemetry_models import ProcessingResult, AnalysisResult, FileAnalysis, SessionData
 from .data_cleaner import DataCleaner, LapDetector
 from .data_alignment import DataAlignmentEngine, ComparisonCalculator
+from .comparison_engine import DataComparisonEngine
 
 class TelemetryProcessor:
     """
@@ -20,6 +21,7 @@ class TelemetryProcessor:
         self.lap_detector = LapDetector()
         self.alignment_engine = DataAlignmentEngine()
         self.comparison_calculator = ComparisonCalculator()
+        self.comparison_engine = DataComparisonEngine()
     
     def process_single_file(self, df: pd.DataFrame, filename: str, session_id: str) -> ProcessingResult:
         """
@@ -491,4 +493,145 @@ class TelemetryProcessor:
             return {
                 "success": False,
                 "error": f"Error getting lap comparison data: {str(e)}"
+            }
+    
+    def perform_advanced_comparison(self, session1: SessionData, session2: SessionData,
+                                  use_fastest_laps: bool = True,
+                                  specific_lap1: Optional[int] = None,
+                                  specific_lap2: Optional[int] = None) -> Dict[str, Any]:
+        """
+        Perform advanced comparison using the new comparison engine
+        """
+        try:
+            comparison_result = self.comparison_engine.compare_sessions(
+                session1, session2, use_fastest_laps, specific_lap1, specific_lap2
+            )
+            
+            # Convert to dictionary format for API response
+            return {
+                "success": True,
+                "comparison_type": "advanced_analysis",
+                "driver1": {
+                    "name": comparison_result.driver1_name,
+                    "lap_number": comparison_result.lap1_number
+                },
+                "driver2": {
+                    "name": comparison_result.driver2_name,
+                    "lap_number": comparison_result.lap2_number
+                },
+                "overall_metrics": {
+                    "total_time_delta": comparison_result.total_time_delta,
+                    "faster_driver": comparison_result.faster_driver,
+                    "total_distance": comparison_result.total_distance,
+                    "data_points": comparison_result.data_points,
+                    "processing_time": comparison_result.processing_time
+                },
+                "speed_analysis": comparison_result.speed_analysis,
+                "action_analysis": comparison_result.action_analysis,
+                "dynamics_analysis": comparison_result.dynamics_analysis,
+                "sector_analysis": [
+                    {
+                        "sector_number": sector.sector_number,
+                        "start_distance": sector.start_distance,
+                        "end_distance": sector.end_distance,
+                        "time_difference": sector.time_difference,
+                        "dominant_driver": sector.dominant_driver,
+                        "speed_metrics": {
+                            "max_speed_delta": sector.max_speed_delta,
+                            "avg_speed_delta": sector.avg_speed_delta,
+                            "speed_advantage_distance": sector.speed_advantage_distance
+                        },
+                        "corner_speeds": sector.corner_speeds,
+                        "braking_analysis": {
+                            "braking_points": sector.braking_points,
+                            "throttle_points": sector.throttle_application_points
+                        },
+                        "action_distribution": sector.action_distribution
+                    }
+                    for sector in comparison_result.sector_analysis
+                ],
+                "detailed_comparison_points": len(comparison_result.comparison_points),
+                "analysis_timestamp": comparison_result.analysis_timestamp.isoformat()
+            }
+            
+        except Exception as e:
+            return {
+                "success": False,
+                "error": f"Advanced comparison error: {str(e)}"
+            }
+    
+    def get_performance_metrics(self, session_data: SessionData, 
+                               lap_number: Optional[int] = None) -> Dict[str, Any]:
+        """
+        Get detailed performance metrics for a single session
+        """
+        try:
+            # Select lap for analysis
+            if lap_number:
+                target_lap = next((lap for lap in session_data.laps if lap.lap_number == lap_number), None)
+            else:
+                target_lap = session_data.fastest_lap
+            
+            if not target_lap:
+                return {
+                    "success": False,
+                    "error": "No valid lap found for analysis"
+                }
+            
+            # Analyze driver actions
+            throttle_data = [point.throttle_pos for point in target_lap.data_points if point.throttle_pos is not None]
+            brake_data = [point.brake_pos for point in target_lap.data_points if point.brake_pos is not None]
+            
+            action_analysis = self.comparison_engine.action_classifier.analyze_action_sequence(
+                throttle_data, brake_data
+            )
+            
+            # Analyze vehicle dynamics (basic analysis with available data)
+            dynamics_analysis = self.comparison_engine.dynamics_analyzer.analyze_handling_characteristics(
+                target_lap.data_points
+            )
+            
+            # Calculate performance statistics
+            speeds = [point.speed for point in target_lap.data_points if point.speed is not None]
+            throttle_positions = [point.throttle_pos for point in target_lap.data_points if point.throttle_pos is not None]
+            brake_positions = [point.brake_pos for point in target_lap.data_points if point.brake_pos is not None]
+            
+            return {
+                "success": True,
+                "driver_name": session_data.driver_name,
+                "lap_number": target_lap.lap_number,
+                "lap_time": target_lap.lap_time,
+                "is_fastest": target_lap.is_fastest,
+                "performance_metrics": {
+                    "speed_stats": {
+                        "max_speed": max(speeds) if speeds else 0,
+                        "min_speed": min(speeds) if speeds else 0,
+                        "avg_speed": sum(speeds) / len(speeds) if speeds else 0,
+                        "speed_consistency": np.std(speeds) if speeds else 0
+                    },
+                    "throttle_stats": {
+                        "max_throttle": max(throttle_positions) if throttle_positions else 0,
+                        "avg_throttle": sum(throttle_positions) / len(throttle_positions) if throttle_positions else 0,
+                        "throttle_application_count": len([t for t in throttle_positions if t > 95])
+                    },
+                    "brake_stats": {
+                        "max_brake": max(brake_positions) if brake_positions else 0,
+                        "avg_brake": sum(brake_positions) / len(brake_positions) if brake_positions else 0,
+                        "braking_events": len([b for b in brake_positions if b > 5])
+                    }
+                },
+                "action_analysis": action_analysis,
+                "dynamics_analysis": dynamics_analysis,
+                "data_quality": {
+                    "total_points": len(target_lap.data_points),
+                    "valid_speed_points": len(speeds),
+                    "valid_throttle_points": len(throttle_positions),
+                    "valid_brake_points": len(brake_positions)
+                }
+            }
+            
+        except Exception as e:
+            return {
+                "success": False,
+                "error": f"Performance metrics error: {str(e)}"
             } 

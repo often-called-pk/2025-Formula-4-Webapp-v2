@@ -2,6 +2,9 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Import racing theme styles */
+@import './styles/racingTheme.css';
+
 @layer base {
   :root {
     /* Modern Analytics Light Theme */

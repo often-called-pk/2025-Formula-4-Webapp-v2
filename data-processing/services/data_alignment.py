@@ -311,15 +311,11 @@ class DataAlignmentEngine:
                     "speed_advantage_distance": self._find_advantage_zones(speed_diff, distances)
                 }
             
-            # Time delta calculation (approximate based on speed differences)
+            # Enhanced time delta calculation
             if "speed" in driver1 and "speed" in driver2 and "time" in driver1 and "time" in driver2:
-                time_delta = np.array(driver1["time"]) - np.array(driver2["time"])
-                metrics["time_comparison"] = {
-                    "time_delta_start": float(time_delta[0]) if len(time_delta) > 0 else 0,
-                    "time_delta_end": float(time_delta[-1]) if len(time_delta) > 0 else 0,
-                    "max_time_gap": float(np.max(np.abs(time_delta))),
-                    "avg_time_delta": float(np.mean(time_delta))
-                }
+                metrics["time_comparison"] = self._calculate_lap_delta_detailed(
+                    driver1, driver2, distances
+                )
             
             # Throttle and brake comparison
             if "throttle" in driver1 and "throttle" in driver2:
@@ -483,6 +479,118 @@ class DataAlignmentEngine:
         except Exception as e:
             print(f"Error calculating performance summary: {e}")
             return {}
+    
+    def _calculate_lap_delta_detailed(self, driver1: Dict, driver2: Dict, distances: List[float]) -> Dict[str, Any]:
+        """
+        Calculate detailed lap delta (time differences) between two drivers
+        
+        Args:
+            driver1: Driver 1 telemetry data
+            driver2: Driver 2 telemetry data  
+            distances: Distance array for alignment
+            
+        Returns:
+            Detailed lap delta analysis including progressive time differences
+        """
+        try:
+            time1 = np.array(driver1["time"])
+            time2 = np.array(driver2["time"])
+            
+            # Calculate raw time delta (driver1 - driver2, negative means driver1 is behind)
+            time_delta = time1 - time2
+            
+            # Calculate cumulative delta (progressive time difference)
+            # This shows how the gap builds up over the lap
+            cumulative_delta = time_delta - time_delta[0]  # Normalize to start at 0
+            
+            # Find zero crossings (where drivers are equal)
+            zero_crossings = []
+            for i in range(1, len(cumulative_delta)):
+                if (cumulative_delta[i-1] > 0 and cumulative_delta[i] <= 0) or \
+                   (cumulative_delta[i-1] < 0 and cumulative_delta[i] >= 0):
+                    # Linear interpolation to find exact crossing point
+                    crossing_distance = distances[i-1] + \
+                        (distances[i] - distances[i-1]) * \
+                        abs(cumulative_delta[i-1]) / (abs(cumulative_delta[i-1]) + abs(cumulative_delta[i]))
+                    zero_crossings.append({
+                        "distance": float(crossing_distance),
+                        "index": i-1
+                    })
+            
+            # Find maximum gaps
+            max_driver1_advantage_idx = np.argmax(cumulative_delta)
+            max_driver2_advantage_idx = np.argmin(cumulative_delta)
+            
+            # Calculate sector deltas (3 sectors)
+            sector_deltas = []
+            num_sectors = 3
+            total_distance = distances[-1] if distances else 0
+            sector_length = total_distance / num_sectors
+            
+            for sector in range(num_sectors):
+                sector_start = sector * sector_length
+                sector_end = (sector + 1) * sector_length
+                
+                # Find indices for this sector
+                sector_indices = [
+                    i for i, d in enumerate(distances) 
+                    if sector_start <= d <= sector_end
+                ]
+                
+                if sector_indices:
+                    sector_start_delta = cumulative_delta[sector_indices[0]]
+                    sector_end_delta = cumulative_delta[sector_indices[-1]]
+                    sector_time_gained = sector_end_delta - sector_start_delta
+                    
+                    sector_deltas.append({
+                        "sector": sector + 1,
+                        "start_distance": float(sector_start),
+                        "end_distance": float(sector_end),
+                        "time_gained_driver1": float(sector_time_gained),
+                        "time_gained_driver2": float(-sector_time_gained),
+                        "advantage": "driver1" if sector_time_gained > 0 else "driver2"
+                    })
+            
+            return {
+                "time_delta_array": time_delta.tolist(),
+                "cumulative_delta_array": cumulative_delta.tolist(),
+                "distance_array": distances,
+                "time_delta_start": float(time_delta[0]) if len(time_delta) > 0 else 0,
+                "time_delta_end": float(time_delta[-1]) if len(time_delta) > 0 else 0,
+                "cumulative_delta_final": float(cumulative_delta[-1]) if len(cumulative_delta) > 0 else 0,
+                "max_time_gap": float(np.max(np.abs(cumulative_delta))),
+                "avg_time_delta": float(np.mean(time_delta)),
+                "zero_crossings": zero_crossings,
+                "max_advantages": {
+                    "driver1_max_advantage": {
+                        "time_gap": float(cumulative_delta[max_driver1_advantage_idx]),
+                        "distance": float(distances[max_driver1_advantage_idx]),
+                        "index": int(max_driver1_advantage_idx)
+                    },
+                    "driver2_max_advantage": {
+                        "time_gap": float(abs(cumulative_delta[max_driver2_advantage_idx])),
+                        "distance": float(distances[max_driver2_advantage_idx]),
+                        "index": int(max_driver2_advantage_idx)
+                    }
+                },
+                "sector_analysis": sector_deltas,
+                "statistics": {
+                    "driver1_ahead_percentage": float(np.sum(cumulative_delta > 0) / len(cumulative_delta) * 100),
+                    "driver2_ahead_percentage": float(np.sum(cumulative_delta < 0) / len(cumulative_delta) * 100),
+                    "even_percentage": float(np.sum(np.abs(cumulative_delta) < 0.1) / len(cumulative_delta) * 100),
+                    "delta_variance": float(np.var(cumulative_delta)),
+                    "delta_std": float(np.std(cumulative_delta))
+                }
+            }
+            
+        except Exception as e:
+            print(f"Error calculating detailed lap delta: {e}")
+            return {
+                "error": f"Lap delta calculation failed: {str(e)}",
+                "time_delta_array": [],
+                "cumulative_delta_array": [],
+                "distance_array": []
+            }
 
 
 class ComparisonCalculator:

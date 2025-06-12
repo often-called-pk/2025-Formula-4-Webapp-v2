@@ -1,0 +1,440 @@
+/* Racing Theme Styles for Charts */
+
+/* Racing color palette CSS variables */
+:root {
+  /* Primary racing colors */
+  --racing-red: #dc2626;
+  --racing-red-dark: #b91c1c;
+  --racing-red-light: #ef4444;
+  
+  /* Secondary colors */
+  --racing-blue: #3b82f6;
+  --racing-blue-dark: #1e40af;
+  --racing-green: #10b981;
+  --racing-amber: #f59e0b;
+  
+  /* Track colors */
+  --track-asphalt: #2d3748;
+  --track-kerb-red: #e53e3e;
+  --track-kerb-white: #ffffff;
+  
+  /* Racing UI gradients */
+  --racing-gradient: linear-gradient(135deg, var(--racing-red) 0%, var(--racing-red-dark) 100%);
+  --checkered-pattern: repeating-conic-gradient(#000 0% 25%, #fff 0% 50%);
+  
+  /* Performance colors */
+  --speed-fast: #10b981;
+  --speed-medium: #f59e0b;
+  --speed-slow: #ef4444;
+  
+  /* Warning colors */
+  --warning-yellow: #fbbf24;
+  --critical-red: #dc2626;
+  --safe-green: #059669;
+}
+
+/* Dark theme overrides */
+[data-theme="dark"] {
+  --track-asphalt: #1a202c;
+  --track-kerb-white: #e2e8f0;
+}
+
+/* Racing-themed chart container */
+.racing-chart-container {
+  position: relative;
+  background: linear-gradient(145deg, #f8fafc 0%, #f1f5f9 100%);
+  border-radius: 12px;
+  border: 2px solid #e2e8f0;
+  overflow: hidden;
+  box-shadow: 
+    0 4px 6px -1px rgba(0, 0, 0, 0.1),
+    0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  transition: all 0.3s ease;
+}
+
+[data-theme="dark"] .racing-chart-container {
+  background: linear-gradient(145deg, #1e293b 0%, #0f172a 100%);
+  border-color: #334155;
+  box-shadow: 
+    0 4px 6px -1px rgba(0, 0, 0, 0.3),
+    0 2px 4px -1px rgba(0, 0, 0, 0.2);
+}
+
+.racing-chart-container:hover {
+  transform: translateY(-2px);
+  box-shadow: 
+    0 10px 15px -3px rgba(0, 0, 0, 0.1),
+    0 4px 6px -2px rgba(0, 0, 0, 0.05);
+}
+
+[data-theme="dark"] .racing-chart-container:hover {
+  box-shadow: 
+    0 10px 15px -3px rgba(0, 0, 0, 0.4),
+    0 4px 6px -2px rgba(0, 0, 0, 0.3);
+}
+
+/* Racing header with checkered flag pattern */
+.racing-chart-header {
+  position: relative;
+  padding: 1rem 1.5rem;
+  background: var(--racing-gradient);
+  color: white;
+  border-bottom: 3px solid var(--racing-red-dark);
+}
+
+.racing-chart-header::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 4px;
+  background: var(--checkered-pattern);
+  background-size: 16px 16px;
+  opacity: 0.3;
+}
+
+.racing-chart-header h3 {
+  margin: 0;
+  font-family: 'Inter', system-ui, sans-serif;
+  font-weight: 700;
+  font-size: 1.125rem;
+  letter-spacing: -0.025em;
+}
+
+.racing-chart-header .subtitle {
+  margin-top: 0.25rem;
+  font-size: 0.875rem;
+  opacity: 0.9;
+  font-weight: 400;
+}
+
+/* Speed zones styling */
+.speed-zone-fast {
+  color: var(--speed-fast);
+  background: rgba(16, 185, 129, 0.1);
+  border-color: var(--speed-fast);
+}
+
+.speed-zone-medium {
+  color: var(--speed-medium);
+  background: rgba(245, 158, 11, 0.1);
+  border-color: var(--speed-medium);
+}
+
+.speed-zone-slow {
+  color: var(--speed-slow);
+  background: rgba(239, 68, 68, 0.1);
+  border-color: var(--speed-slow);
+}
+
+/* Racing metrics cards */
+.racing-metrics-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1rem;
+  margin-top: 1rem;
+}
+
+.racing-metric-card {
+  background: rgba(255, 255, 255, 0.9);
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 1rem;
+  backdrop-filter: blur(10px);
+  transition: all 0.2s ease;
+}
+
+[data-theme="dark"] .racing-metric-card {
+  background: rgba(30, 41, 59, 0.9);
+  border-color: #334155;
+}
+
+.racing-metric-card:hover {
+  border-color: var(--racing-red);
+  box-shadow: 0 4px 12px rgba(220, 38, 38, 0.15);
+}
+
+.racing-metric-label {
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #64748b;
+  margin-bottom: 0.25rem;
+}
+
+[data-theme="dark"] .racing-metric-label {
+  color: #94a3b8;
+}
+
+.racing-metric-value {
+  font-size: 1.5rem;
+  font-weight: 700;
+  font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+  color: var(--racing-red);
+  line-height: 1;
+}
+
+.racing-metric-unit {
+  font-size: 0.875rem;
+  font-weight: 400;
+  color: #64748b;
+  margin-left: 0.25rem;
+}
+
+[data-theme="dark"] .racing-metric-unit {
+  color: #94a3b8;
+}
+
+/* Responsive design breakpoints */
+@media (max-width: 640px) {
+  .racing-chart-container {
+    border-radius: 8px;
+    border-width: 1px;
+    margin: 0 -0.5rem;
+  }
+  
+  .racing-chart-header {
+    padding: 0.75rem 1rem;
+  }
+  
+  .racing-chart-header h3 {
+    font-size: 1rem;
+  }
+  
+  .racing-metrics-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0.75rem;
+  }
+  
+  .racing-metric-card {
+    padding: 0.75rem;
+  }
+  
+  .racing-metric-value {
+    font-size: 1.25rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .racing-metrics-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .racing-chart-header {
+    padding: 0.5rem 0.75rem;
+  }
+  
+  .racing-chart-header h3 {
+    font-size: 0.875rem;
+  }
+  
+  .racing-chart-header .subtitle {
+    font-size: 0.75rem;
+  }
+}
+
+/* Chart legend styling */
+.racing-legend {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 1rem;
+  margin-top: 1rem;
+  padding: 0.75rem;
+  background: rgba(248, 250, 252, 0.8);
+  border-radius: 8px;
+  border: 1px solid #e2e8f0;
+}
+
+[data-theme="dark"] .racing-legend {
+  background: rgba(30, 41, 59, 0.8);
+  border-color: #334155;
+}
+
+.racing-legend-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.875rem;
+  color: #374151;
+}
+
+[data-theme="dark"] .racing-legend-item {
+  color: #d1d5db;
+}
+
+.racing-legend-line {
+  width: 1rem;
+  height: 3px;
+  border-radius: 2px;
+}
+
+/* Driver comparison badges */
+.driver-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.25rem 0.75rem;
+  border-radius: 9999px;
+  font-size: 0.875rem;
+  font-weight: 600;
+  border: 2px solid;
+}
+
+.driver-badge-1 {
+  background: rgba(220, 38, 38, 0.1);
+  border-color: var(--racing-red);
+  color: var(--racing-red);
+}
+
+.driver-badge-2 {
+  background: rgba(59, 130, 246, 0.1);
+  border-color: var(--racing-blue);
+  color: var(--racing-blue);
+}
+
+.driver-badge-indicator {
+  width: 0.5rem;
+  height: 0.5rem;
+  border-radius: 50%;
+}
+
+/* Performance indicators */
+.performance-indicator {
+  position: relative;
+  display: inline-block;
+  width: 1rem;
+  height: 1rem;
+  border-radius: 50%;
+  border: 2px solid;
+}
+
+.performance-indicator.excellent {
+  background: var(--safe-green);
+  border-color: var(--safe-green);
+}
+
+.performance-indicator.good {
+  background: var(--warning-yellow);
+  border-color: var(--warning-yellow);
+}
+
+.performance-indicator.poor {
+  background: var(--critical-red);
+  border-color: var(--critical-red);
+}
+
+.performance-indicator.excellent::after,
+.performance-indicator.good::after,
+.performance-indicator.poor::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 0.5rem;
+  height: 0.5rem;
+  border-radius: 50%;
+  background: white;
+}
+
+/* Loading animation with racing theme */
+.racing-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 3rem;
+  color: #64748b;
+}
+
+[data-theme="dark"] .racing-loading {
+  color: #94a3b8;
+}
+
+.racing-loading-spinner {
+  width: 3rem;
+  height: 3rem;
+  border: 4px solid #e2e8f0;
+  border-top: 4px solid var(--racing-red);
+  border-radius: 50%;
+  animation: racing-spin 1s linear infinite;
+  margin-bottom: 1rem;
+}
+
+[data-theme="dark"] .racing-loading-spinner {
+  border-color: #334155;
+  border-top-color: var(--racing-red);
+}
+
+@keyframes racing-spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.racing-loading-text {
+  font-size: 0.875rem;
+  font-weight: 500;
+  text-align: center;
+}
+
+/* Accessibility improvements */
+@media (prefers-reduced-motion: reduce) {
+  .racing-chart-container,
+  .racing-metric-card,
+  .racing-loading-spinner {
+    transition: none;
+    animation: none;
+  }
+  
+  .racing-chart-container:hover {
+    transform: none;
+  }
+}
+
+/* High contrast mode support */
+@media (prefers-contrast: high) {
+  .racing-chart-container {
+    border-width: 3px;
+    border-color: #000;
+  }
+  
+  .racing-chart-header {
+    background: #000;
+    color: #fff;
+  }
+  
+  .racing-metric-value {
+    color: #000;
+  }
+  
+  [data-theme="dark"] .racing-metric-value {
+    color: #fff;
+  }
+}
+
+/* Focus indicators for keyboard navigation */
+.racing-chart-container:focus-within {
+  outline: 3px solid var(--racing-red);
+  outline-offset: 2px;
+}
+
+/* Print styles */
+@media print {
+  .racing-chart-container {
+    border: 2px solid #000;
+    box-shadow: none;
+    background: #fff;
+  }
+  
+  .racing-chart-header {
+    background: #000;
+    color: #fff;
+  }
+  
+  .racing-loading-spinner {
+    display: none;
+  }
+}

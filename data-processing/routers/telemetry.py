@@ -1,10 +1,11 @@
-from fastapi import APIRouter, HTTPException, UploadFile, File, Form
-from typing import List, Optional
+from fastapi import APIRouter, HTTPException, UploadFile, File, Form, Depends, Request
+from typing import List, Optional, Dict, Any
 import pandas as pd
 import numpy as np
 import io
 from models.telemetry_models import ProcessingResult, AnalysisResult
 from services.data_processor import TelemetryProcessor
+from middleware.auth import get_current_user, get_current_user_optional, basic_rate_limit, heavy_rate_limit, comparison_rate_limit
 
 router = APIRouter(prefix="/telemetry", tags=["telemetry"])
 processor = TelemetryProcessor()
@@ -12,7 +13,9 @@ processor = TelemetryProcessor()
 @router.post("/process", response_model=ProcessingResult)
 async def process_telemetry_file(
     file: UploadFile = File(...),
-    session_id: str = Form(...)
+    session_id: str = Form(...),
+    current_user: Dict[str, Any] = Depends(get_current_user),
+    _: None = Depends(heavy_rate_limit)
 ):
     """
     Process uploaded CSV telemetry file
@@ -59,7 +62,9 @@ async def compare_sessions_detailed(
     files: List[UploadFile] = File(...),
     use_fastest_laps: bool = Form(True),
     lap1_number: Optional[int] = Form(None),
-    lap2_number: Optional[int] = Form(None)
+    lap2_number: Optional[int] = Form(None),
+    current_user: Dict[str, Any] = Depends(get_current_user),
+    _: None = Depends(comparison_rate_limit)
 ):
     """
     Perform detailed comparison between two sessions with data alignment and advanced metrics
@@ -169,8 +174,105 @@ async def get_lap_comparison_data(
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Lap comparison data error: {str(e)}")
 
+@router.post("/lap-delta")
+async def get_lap_delta_data(
+    files: List[UploadFile] = File(...),
+    lap1_number: Optional[int] = Form(None),
+    lap2_number: Optional[int] = Form(None),
+    current_user: Dict[str, Any] = Depends(get_current_user),
+    _: None = Depends(comparison_rate_limit)
+):
+    """
+    Get detailed lap delta (time difference) data between two drivers
+    
+    Args:
+        files: Exactly 2 CSV telemetry files
+        lap1_number: Specific lap number from first file (uses fastest if None)
+        lap2_number: Specific lap number from second file (uses fastest if None)
+    
+    Returns:
+        Comprehensive lap delta analysis including:
+        - Progressive time differences along the track
+        - Zero crossing points where drivers are equal
+        - Maximum advantage points for each driver
+        - Sector-by-sector delta analysis
+        - Statistical summary of time differences
+    """
+    try:
+        if len(files) != 2:
+            raise HTTPException(status_code=400, detail="Exactly 2 files required for lap delta analysis")
+        
+        # Process both files to get session data
+        sessions = []
+        for file in files:
+            content = await file.read()
+            df = pd.read_csv(io.StringIO(content.decode('utf-8')))
+            
+            # Extract metadata and process
+            metadata, df_clean = processor._extract_metadata(df)
+            df_clean = processor.data_cleaner.clean_data(df_clean)
+            laps = processor.lap_detector.detect_laps_from_metadata(metadata, df_clean)
+            fastest_lap = processor.lap_detector.get_fastest_lap(laps)
+            
+            # Create session data
+            from models.telemetry_models import SessionData
+            session_data = SessionData(
+                driver_name=metadata.get('Racer', f'Driver {len(sessions) + 1}'),
+                session_name=metadata.get('Session', 'Unknown'),
+                track_name=metadata.get('Session', 'Unknown'),
+                laps=laps,
+                fastest_lap=fastest_lap,
+                metadata=metadata
+            )
+            sessions.append(session_data)
+        
+        # Perform alignment to get detailed comparison data
+        alignment_result = processor.alignment_engine.align_sessions(
+            sessions[0], sessions[1], 
+            use_fastest_laps=(lap1_number is None and lap2_number is None),
+            specific_lap1=lap1_number,
+            specific_lap2=lap2_number
+        )
+        
+        if not alignment_result.get("success"):
+            raise HTTPException(status_code=400, detail=f"Data alignment failed: {alignment_result.get('error', 'Unknown error')}")
+        
+        # Extract lap delta data from the comparison metrics
+        time_comparison = alignment_result.get("comparison_metrics", {}).get("time_comparison", {})
+        
+        # Add driver information for context
+        result = {
+            "success": True,
+            "drivers": {
+                "driver1": {
+                    "name": alignment_result["driver1"]["name"],
+                    "lap_number": alignment_result["driver1"]["lap_number"],
+                    "lap_time": alignment_result["driver1"]["lap_time"]
+                },
+                "driver2": {
+                    "name": alignment_result["driver2"]["name"],
+                    "lap_number": alignment_result["driver2"]["lap_number"],
+                    "lap_time": alignment_result["driver2"]["lap_time"]
+                }
+            },
+            "lap_delta": time_comparison,
+            "alignment_info": alignment_result.get("alignment_info", {}),
+            "total_distance": alignment_result.get("alignment_info", {}).get("total_distance", 0),
+            "data_points": alignment_result.get("alignment_info", {}).get("data_points", 0)
+        }
+        
+        return result
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Lap delta analysis error: {str(e)}")
+
 @router.get("/capabilities")
-def get_capabilities():
+def get_capabilities(
+    current_user: Optional[Dict[str, Any]] = Depends(get_current_user_optional),
+    _: None = Depends(basic_rate_limit)
+):
     """
     Get telemetry processing capabilities
     """
